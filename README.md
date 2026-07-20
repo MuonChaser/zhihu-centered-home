@@ -8,6 +8,8 @@
 2. 点击[安装“知乎首页居中精简”](https://raw.githubusercontent.com/MuonChaser/zhihu-centered-home/main/zhihu-centered-home.user.js)。
 3. 在 Tampermonkey 的安装页确认安装，然后刷新知乎首页。
 
+已经安装旧版本时，再次打开安装链接即可更新到最新版。
+
 ## 效果
 
 - 信息流宽度保持为知乎原生主栏的 694px。
