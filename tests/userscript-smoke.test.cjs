@@ -132,6 +132,10 @@ async function main() {
   assert.match(firstStyle.textContent, /Topstory-mainColumn \+ div/, 'style contains the structural sidebar selector');
   assert.match(firstStyle.textContent, /Question-sideColumn/, 'style hides the answer-page sidebar');
   assert.match(firstStyle.textContent, /QuestionHeader-content/, 'style centers the answer-page header');
+  assert.match(firstStyle.textContent, /AppHeader[\s\S]*SearchBar/, 'style reduces the app header to the search bar');
+  assert.match(firstStyle.textContent, /Pc-Business-Card-PcTopFeedBanner/, 'style hides the homepage promotion banner');
+  assert.match(firstStyle.textContent, /WriteArea/, 'style hides the homepage composer card');
+  assert.match(firstStyle.textContent, /\.QuestionHeader,/, 'style hides the question header card');
 
   document.head.removeChild(firstStyle);
   assert.ok(document.getElementById('zhihu-centered-home-style'), 'style is restored after Zhihu removes it');
@@ -141,7 +145,11 @@ async function main() {
 
   history.pushState({}, '', '/question/123');
   await new Promise((resolve) => setImmediate(resolve));
-  assert.equal(documentElement.hasAttribute('data-zhihu-centered-home'), false, 'layout is disabled away from the homepage');
+  assert.equal(documentElement.hasAttribute('data-zhihu-centered-home'), true, 'layout is enabled on a regular question page');
+
+  history.pushState({}, '', '/search?q=test');
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(documentElement.hasAttribute('data-zhihu-centered-home'), false, 'layout is disabled on unrelated pages');
 
   history.pushState({}, '', '/question/123/answer/456');
   await new Promise((resolve) => setImmediate(resolve));
@@ -155,7 +163,7 @@ async function main() {
   await new Promise((resolve) => setImmediate(resolve));
   assert.equal(documentElement.hasAttribute('data-zhihu-centered-home'), true, 'layout is re-enabled after returning home');
 
-  console.log('PASS: userscript restores its style, supports home and answer pages, and handles SPA navigation.');
+  console.log('PASS: userscript restores its style, supports home, question, and answer pages, and handles SPA navigation.');
 }
 
 main().catch((error) => {

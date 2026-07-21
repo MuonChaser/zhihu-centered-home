@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         知乎首页与回答页居中精简
 // @namespace    https://github.com/MuonChaser/zhihu-centered-home
-// @version      1.1.0
-// @description  让知乎首页信息流和回答页正文居中显示，并隐藏右侧栏。
+// @version      1.2.0
+// @description  精简知乎首页与问题页：正文居中、隐藏侧栏和顶部杂项，只保留居中搜索框。
 // @author       MuonChaser
 // @match        https://www.zhihu.com/*
 // @match        https://zhihu.com/*
@@ -21,6 +21,38 @@
 
   const css = `
     @media (min-width: 1000px) {
+      /* 全站顶栏只保留搜索框；用结构选择器规避知乎频繁变化的构建类名。 */
+      html[${PAGE_ATTRIBUTE}] .AppHeader > div {
+        justify-content: center !important;
+      }
+
+      html[${PAGE_ATTRIBUTE}] .AppHeader > div > :not(:has(.SearchBar)),
+      html[${PAGE_ATTRIBUTE}] .AppHeader > div > :has(.SearchBar) > :not(:has(.SearchBar)),
+      html[${PAGE_ATTRIBUTE}] .AppHeader *:has(> * > .SearchBar) > :not(:has(.SearchBar)),
+      html[${PAGE_ATTRIBUTE}] .AppHeader .SearchBar > :not(.SearchBar-tool) {
+        display: none !important;
+      }
+
+      html[${PAGE_ATTRIBUTE}] .AppHeader > div > :has(.SearchBar),
+      html[${PAGE_ATTRIBUTE}] .AppHeader > div > :has(.SearchBar) > :has(.SearchBar),
+      html[${PAGE_ATTRIBUTE}] .AppHeader *:has(> * > .SearchBar),
+      html[${PAGE_ATTRIBUTE}] .AppHeader *:has(> .SearchBar) {
+        display: flex !important;
+        box-sizing: border-box !important;
+        width: 100% !important;
+        max-width: none !important;
+        justify-content: center !important;
+      }
+
+      html[${PAGE_ATTRIBUTE}] .AppHeader .SearchBar {
+        width: 560px !important;
+        max-width: calc(100vw - 32px) !important;
+      }
+
+      html[${PAGE_ATTRIBUTE}] .AppHeader .SearchBar-tool {
+        width: 100% !important;
+      }
+
       html[${PAGE_ATTRIBUTE}] .Topstory-container {
         display: block !important;
         box-sizing: border-box !important;
@@ -37,6 +69,12 @@
         max-width: none !important;
         margin-left: 0 !important;
         margin-right: 0 !important;
+      }
+
+      /* 首页顶部推广横幅和发布内容卡片。 */
+      html[${PAGE_ATTRIBUTE}] .Pc-Business-Card-PcTopFeedBanner,
+      html[${PAGE_ATTRIBUTE}] .WriteArea {
+        display: none !important;
       }
 
       /* 右侧的热榜、推荐、广告等模块。 */
@@ -67,7 +105,10 @@
       }
 
       html[${PAGE_ATTRIBUTE}] .Question-sideColumn,
-      html[${PAGE_ATTRIBUTE}] .QuestionHeader-side {
+      html[${PAGE_ATTRIBUTE}] .QuestionHeader-side,
+      /* 问题页顶部标题、关注和操作框；顶栏搜索框保留。 */
+      html[${PAGE_ATTRIBUTE}] .QuestionHeader,
+      html[${PAGE_ATTRIBUTE}] .PageHeader {
         display: none !important;
       }
 
@@ -94,7 +135,7 @@
 
   function isSupportedPage() {
     if (!location.hostname.endsWith('zhihu.com')) return false;
-    return location.pathname === '/' || /^\/question\/\d+\/answer\/\d+\/?$/.test(location.pathname);
+    return location.pathname === '/' || /^\/question\/\d+(?:\/answer\/\d+)?\/?$/.test(location.pathname);
   }
 
   function updateLayout() {
