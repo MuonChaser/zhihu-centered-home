@@ -141,7 +141,9 @@ async function main() {
   assert.doesNotMatch(firstStyle.textContent, /data-zhihu-centered-scrolled/, 'header style does not switch when scrolling');
   assert.match(firstStyle.textContent, /Pc-Business-Card-PcTopFeedBanner/, 'style hides the homepage promotion banner');
   assert.match(firstStyle.textContent, /WriteArea/, 'style hides the homepage composer card');
-  assert.match(firstStyle.textContent, /\.QuestionHeader,/, 'style hides the question header card');
+  assert.match(firstStyle.textContent, /\.QuestionHeader \{[\s\S]*width: 694px[\s\S]*border-radius: 10px/, 'style keeps the question header as a centered card');
+  assert.match(firstStyle.textContent, /\.QuestionHeader-detail \{[\s\S]*line-height: 1\.75/, 'style preserves and formats the question description');
+  assert.match(firstStyle.textContent, /\.PageHeader \{[\s\S]*display: none/, 'style hides only the duplicate sticky question header');
 
   document.head.removeChild(firstStyle);
   assert.ok(document.getElementById('zhihu-centered-home-style'), 'style is restored after Zhihu removes it');

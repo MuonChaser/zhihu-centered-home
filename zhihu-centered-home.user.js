@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         知乎 · 简净居中
 // @namespace    https://github.com/MuonChaser/zhihu-centered-home
-// @version      1.2.5
+// @version      1.3.0
 // @description  精简知乎首页与问题页：正文居中、隐藏侧栏和顶部杂项，仅保留 Logo 与居中搜索框。
 // @author       MuonChaser
 // @match        https://www.zhihu.com/*
@@ -135,23 +135,54 @@
 
       html[${PAGE_ATTRIBUTE}] .Question-sideColumn,
       html[${PAGE_ATTRIBUTE}] .QuestionHeader-side,
-      /* 问题页顶部标题、关注和操作框；顶栏搜索框保留。 */
-      html[${PAGE_ATTRIBUTE}] .QuestionHeader,
+      /* 隐藏滚动时出现的重复问题标题栏，保留下方完整问题卡片。 */
       html[${PAGE_ATTRIBUTE}] .PageHeader {
         display: none !important;
+      }
+
+      /* 问题标题、话题、描述与操作区和回答正文同宽，形成紧凑的独立卡片。 */
+      html[${PAGE_ATTRIBUTE}] .QuestionHeader {
+        box-sizing: border-box !important;
+        width: 694px !important;
+        max-width: calc(100vw - 32px) !important;
+        margin: 16px auto 10px !important;
+        overflow: hidden !important;
+        background: #fff !important;
+        border: 1px solid rgba(18, 18, 18, 0.06) !important;
+        border-radius: 10px !important;
+        box-shadow: 0 2px 10px rgba(18, 18, 18, 0.06) !important;
       }
 
       html[${PAGE_ATTRIBUTE}] .QuestionHeader-content,
       html[${PAGE_ATTRIBUTE}] .QuestionHeader-footer-inner {
         box-sizing: border-box !important;
-        width: 694px !important;
-        max-width: calc(100vw - 32px) !important;
-        margin-left: auto !important;
-        margin-right: auto !important;
+        width: 100% !important;
+        max-width: none !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
       }
 
       html[${PAGE_ATTRIBUTE}] .QuestionHeader-content {
         display: block !important;
+      }
+
+      html[${PAGE_ATTRIBUTE}] .QuestionHeader-title {
+        width: 100% !important;
+        font-size: 22px !important;
+        line-height: 1.45 !important;
+      }
+
+      html[${PAGE_ATTRIBUTE}] .QuestionHeader-detail {
+        width: 100% !important;
+        margin-top: 10px !important;
+        color: #444 !important;
+        line-height: 1.75 !important;
+      }
+
+      html[${PAGE_ATTRIBUTE}] .QuestionHeader-footer {
+        width: 100% !important;
+        background: transparent !important;
+        border-top: 1px solid rgba(18, 18, 18, 0.06) !important;
       }
 
       html[${PAGE_ATTRIBUTE}] .QuestionHeader-main,
