@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         知乎 · 简净居中
 // @namespace    https://github.com/MuonChaser/zhihu-centered-home
-// @version      1.3.1
+// @version      1.3.2
 // @description  精简知乎首页与问题页：正文居中、隐藏侧栏和顶部杂项，仅保留 Logo 与居中搜索框。
 // @author       MuonChaser
 // @match        https://www.zhihu.com/*
@@ -140,17 +140,13 @@
         display: none !important;
       }
 
-      /* 问题标题、话题、描述与操作区和回答正文同宽，形成紧凑的独立卡片。 */
+      /* 保留知乎原生问题区样式，只把整体宽度和回答正文对齐。 */
       html[${PAGE_ATTRIBUTE}] .QuestionHeader {
         box-sizing: border-box !important;
         width: 694px !important;
         max-width: calc(100vw - 32px) !important;
-        margin: 16px auto 10px !important;
-        overflow: hidden !important;
-        background: #fff !important;
-        border: 1px solid rgba(18, 18, 18, 0.06) !important;
-        border-radius: 10px !important;
-        box-shadow: 0 2px 10px rgba(18, 18, 18, 0.06) !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
       }
 
       html[${PAGE_ATTRIBUTE}] .QuestionHeader-content,
@@ -166,23 +162,8 @@
         display: block !important;
       }
 
-      html[${PAGE_ATTRIBUTE}] .QuestionHeader-title {
-        width: 100% !important;
-        font-size: 22px !important;
-        line-height: 1.45 !important;
-      }
-
-      html[${PAGE_ATTRIBUTE}] .QuestionHeader-detail {
-        width: 100% !important;
-        margin-top: 10px !important;
-        color: #444 !important;
-        line-height: 1.75 !important;
-      }
-
       html[${PAGE_ATTRIBUTE}] .QuestionHeader-footer {
         width: 100% !important;
-        background: transparent !important;
-        border-top: 1px solid rgba(18, 18, 18, 0.06) !important;
       }
 
       html[${PAGE_ATTRIBUTE}] .QuestionHeader-main,
