@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         知乎 · 简净居中
 // @namespace    https://github.com/MuonChaser/zhihu-centered-home
-// @version      1.2.2
+// @version      1.2.3
 // @description  精简知乎首页与问题页：正文居中、隐藏侧栏和顶部杂项，仅保留 Logo 与居中搜索框。
 // @author       MuonChaser
 // @match        https://www.zhihu.com/*
@@ -22,6 +22,12 @@
   const css = `
     @media (min-width: 1000px) {
       /* 全站顶栏只保留搜索框；用结构选择器规避知乎频繁变化的构建类名。 */
+      html[${PAGE_ATTRIBUTE}] .AppHeader {
+        background: transparent !important;
+        border: 0 !important;
+        box-shadow: none !important;
+      }
+
       html[${PAGE_ATTRIBUTE}] .AppHeader > div {
         justify-content: center !important;
         position: relative !important;
@@ -46,20 +52,30 @@
       }
 
       html[${PAGE_ATTRIBUTE}] .AppHeader .SearchBar {
+        position: fixed !important;
+        top: 12px !important;
+        left: 50% !important;
+        z-index: 1 !important;
         width: 560px !important;
         max-width: calc(100vw - 32px) !important;
+        transform: translateX(-50%) !important;
       }
 
       html[${PAGE_ATTRIBUTE}] .AppHeader .SearchBar-tool {
         width: 100% !important;
       }
 
+      html[${PAGE_ATTRIBUTE}] .AppHeader .SearchBar input::placeholder {
+        color: transparent !important;
+        opacity: 0 !important;
+      }
+
       /* 使用知乎原有 SVG Logo 点缀顶栏，不引入额外图片；搜索框仍严格位于页面中线。 */
       html[${PAGE_ATTRIBUTE}] .AppHeader > div > a[aria-label="知乎"] {
         display: block !important;
-        position: absolute !important;
+        position: fixed !important;
         left: calc(50% - 352px) !important;
-        top: 50% !important;
+        top: 31px !important;
         transform: translateY(-50%) !important;
         margin: 0 !important;
       }

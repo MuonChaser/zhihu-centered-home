@@ -135,6 +135,9 @@ async function main() {
   assert.match(firstStyle.textContent, /AppHeader[\s\S]*SearchBar/, 'style reduces the app header to the search bar');
   assert.match(firstStyle.textContent, /a\[aria-label="知乎"\]/, 'style keeps the Zhihu logo beside the centered search bar');
   assert.match(firstStyle.textContent, /left: calc\(50% - 352px\)/, 'logo placement does not move the search bar off center');
+  assert.match(firstStyle.textContent, /\.SearchBar \{[\s\S]*position: fixed[\s\S]*left: 50%/, 'search bar is centered against the viewport');
+  assert.match(firstStyle.textContent, /input::placeholder[\s\S]*color: transparent/, 'suggested search placeholder is hidden');
+  assert.match(firstStyle.textContent, /\.AppHeader \{[\s\S]*background: transparent[\s\S]*box-shadow: none/, 'full-width white header strip is removed');
   assert.match(firstStyle.textContent, /Pc-Business-Card-PcTopFeedBanner/, 'style hides the homepage promotion banner');
   assert.match(firstStyle.textContent, /WriteArea/, 'style hides the homepage composer card');
   assert.match(firstStyle.textContent, /\.QuestionHeader,/, 'style hides the question header card');
