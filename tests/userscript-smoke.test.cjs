@@ -89,17 +89,25 @@ function findById(root, id) {
 }
 
 async function main() {
+  const documentListeners = new Map();
+  let reloadCount = 0;
   const documentElement = new FakeElement('HTML');
   const document = {
     documentElement,
     head: null,
     createElement: (tagName) => new FakeElement(tagName.toUpperCase()),
     getElementById: (id) => findById(documentElement, id),
-    addEventListener: () => {},
+    addEventListener(type, listener) {
+      if (!documentListeners.has(type)) documentListeners.set(type, []);
+      documentListeners.get(type).push(listener);
+    },
   };
   const location = {
     hostname: 'www.zhihu.com',
     pathname: '/',
+    reload() {
+      reloadCount += 1;
+    },
   };
   const history = {
     pushState(_state, _title, url) {
@@ -144,6 +152,18 @@ async function main() {
   assert.match(firstStyle.textContent, /\.QuestionHeader \{[\s\S]*width: 694px[\s\S]*border-radius: 10px/, 'style keeps the question header as a centered card');
   assert.match(firstStyle.textContent, /\.QuestionHeader-detail \{[\s\S]*line-height: 1\.75/, 'style preserves and formats the question description');
   assert.match(firstStyle.textContent, /\.PageHeader \{[\s\S]*display: none/, 'style hides only the duplicate sticky question header');
+
+  let prevented = false;
+  for (const listener of documentListeners.get('click') || []) {
+    listener({
+      target: { closest: () => ({}) },
+      preventDefault: () => {
+        prevented = true;
+      },
+    });
+  }
+  assert.equal(prevented, true, 'clicking the Zhihu logo prevents SPA navigation');
+  assert.equal(reloadCount, 1, 'clicking the Zhihu logo reloads the current page');
 
   document.head.removeChild(firstStyle);
   assert.ok(document.getElementById('zhihu-centered-home-style'), 'style is restored after Zhihu removes it');

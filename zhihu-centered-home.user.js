@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         知乎 · 简净居中
 // @namespace    https://github.com/MuonChaser/zhihu-centered-home
-// @version      1.3.0
+// @version      1.3.1
 // @description  精简知乎首页与问题页：正文居中、隐藏侧栏和顶部杂项，仅保留 Logo 与居中搜索框。
 // @author       MuonChaser
 // @match        https://www.zhihu.com/*
@@ -234,6 +234,16 @@
 
   maintainLayout();
   document.addEventListener('DOMContentLoaded', maintainLayout, { once: true });
+  document.addEventListener(
+    'click',
+    (event) => {
+      const logo = event.target.closest?.('.AppHeader > div > a[aria-label="知乎"]');
+      if (!logo || !isSupportedPage()) return;
+      event.preventDefault();
+      location.reload();
+    },
+    true,
+  );
 
   for (const method of ['pushState', 'replaceState']) {
     const original = history[method];
