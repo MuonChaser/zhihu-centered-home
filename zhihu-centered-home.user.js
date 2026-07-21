@@ -1,13 +1,13 @@
 // ==UserScript==
 // @name         知乎 · 简净居中
 // @namespace    https://github.com/MuonChaser/zhihu-centered-home
-// @version      1.2.1
+// @version      1.2.2
 // @description  精简知乎首页与问题页：正文居中、隐藏侧栏和顶部杂项，仅保留 Logo 与居中搜索框。
 // @author       MuonChaser
 // @match        https://www.zhihu.com/*
 // @match        https://zhihu.com/*
-// @downloadURL  https://raw.githubusercontent.com/MuonChaser/zhihu-centered-home/main/zhihu-centered-home.user.js
-// @updateURL    https://raw.githubusercontent.com/MuonChaser/zhihu-centered-home/main/zhihu-centered-home.user.js
+// @downloadURL  https://github.com/MuonChaser/zhihu-centered-home/raw/refs/heads/main/zhihu-centered-home.user.js
+// @updateURL    https://github.com/MuonChaser/zhihu-centered-home/raw/refs/heads/main/zhihu-centered-home.user.js
 // @run-at       document-start
 // @grant        none
 // @license      MIT

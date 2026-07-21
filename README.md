@@ -5,7 +5,7 @@
 ## 安装
 
 1. 在 Firefox 中安装 Tampermonkey 或 Violentmonkey。
-2. 点击 **[自动安装 / 更新“知乎 · 简净居中”](https://raw.githubusercontent.com/MuonChaser/zhihu-centered-home/main/zhihu-centered-home.user.js)**。
+2. 点击 **[自动安装 / 更新“知乎 · 简净居中”](https://github.com/MuonChaser/zhihu-centered-home/raw/refs/heads/main/zhihu-centered-home.user.js)**。
 3. 在脚本管理器的安装页确认安装，然后刷新知乎首页、普通问题页或回答详情页。
 
 已经安装旧版本时，再次打开安装链接即可更新到最新版。
