@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         知乎首页居中精简
+// @name         知乎首页与回答页居中精简
 // @namespace    https://github.com/MuonChaser/zhihu-centered-home
-// @version      1.0.1
-// @description  让知乎首页信息流居中显示，并隐藏右侧栏。
+// @version      1.1.0
+// @description  让知乎首页信息流和回答页正文居中显示，并隐藏右侧栏。
 // @author       MuonChaser
 // @match        https://www.zhihu.com/*
 // @match        https://zhihu.com/*
@@ -48,15 +48,57 @@
       html[${PAGE_ATTRIBUTE}] .Topstory-container > .Topstory-mainColumn + div {
         display: none !important;
       }
+
+      /* 回答详情页：新版知乎的外层类名会变化，用稳定的 Question 类和结构定位。 */
+      html[${PAGE_ATTRIBUTE}] .QuestionPage > div:has(> .Question-sideColumn) {
+        display: block !important;
+        box-sizing: border-box !important;
+        width: 694px !important;
+        max-width: calc(100vw - 32px) !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+      }
+
+      html[${PAGE_ATTRIBUTE}] .Question-mainColumn {
+        width: 100% !important;
+        max-width: none !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+      }
+
+      html[${PAGE_ATTRIBUTE}] .Question-sideColumn,
+      html[${PAGE_ATTRIBUTE}] .QuestionHeader-side {
+        display: none !important;
+      }
+
+      html[${PAGE_ATTRIBUTE}] .QuestionHeader-content,
+      html[${PAGE_ATTRIBUTE}] .QuestionHeader-footer-inner {
+        box-sizing: border-box !important;
+        width: 694px !important;
+        max-width: calc(100vw - 32px) !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+      }
+
+      html[${PAGE_ATTRIBUTE}] .QuestionHeader-content {
+        display: block !important;
+      }
+
+      html[${PAGE_ATTRIBUTE}] .QuestionHeader-main,
+      html[${PAGE_ATTRIBUTE}] .QuestionHeader-footer-main {
+        width: 100% !important;
+        max-width: none !important;
+      }
     }
   `;
 
-  function isHomePage() {
-    return location.hostname.endsWith('zhihu.com') && location.pathname === '/';
+  function isSupportedPage() {
+    if (!location.hostname.endsWith('zhihu.com')) return false;
+    return location.pathname === '/' || /^\/question\/\d+\/answer\/\d+\/?$/.test(location.pathname);
   }
 
   function updateLayout() {
-    document.documentElement.toggleAttribute(PAGE_ATTRIBUTE, isHomePage());
+    document.documentElement.toggleAttribute(PAGE_ATTRIBUTE, isSupportedPage());
   }
 
   function installStyle() {

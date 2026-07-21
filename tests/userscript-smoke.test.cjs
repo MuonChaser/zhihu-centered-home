@@ -130,6 +130,8 @@ async function main() {
   const firstStyle = document.getElementById('zhihu-centered-home-style');
   assert.ok(firstStyle, 'style is installed when head appears');
   assert.match(firstStyle.textContent, /Topstory-mainColumn \+ div/, 'style contains the structural sidebar selector');
+  assert.match(firstStyle.textContent, /Question-sideColumn/, 'style hides the answer-page sidebar');
+  assert.match(firstStyle.textContent, /QuestionHeader-content/, 'style centers the answer-page header');
 
   document.head.removeChild(firstStyle);
   assert.ok(document.getElementById('zhihu-centered-home-style'), 'style is restored after Zhihu removes it');
@@ -141,11 +143,19 @@ async function main() {
   await new Promise((resolve) => setImmediate(resolve));
   assert.equal(documentElement.hasAttribute('data-zhihu-centered-home'), false, 'layout is disabled away from the homepage');
 
+  history.pushState({}, '', '/question/123/answer/456');
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(documentElement.hasAttribute('data-zhihu-centered-home'), true, 'layout is enabled on an answer page');
+
+  history.replaceState({}, '', '/question/123/answer/456/');
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(documentElement.hasAttribute('data-zhihu-centered-home'), true, 'answer pages support a trailing slash');
+
   history.pushState({}, '', '/');
   await new Promise((resolve) => setImmediate(resolve));
   assert.equal(documentElement.hasAttribute('data-zhihu-centered-home'), true, 'layout is re-enabled after returning home');
 
-  console.log('PASS: userscript restores its style and homepage marker, and handles SPA navigation.');
+  console.log('PASS: userscript restores its style, supports home and answer pages, and handles SPA navigation.');
 }
 
 main().catch((error) => {
