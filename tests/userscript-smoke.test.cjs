@@ -149,7 +149,8 @@ async function main() {
   assert.doesNotMatch(firstStyle.textContent, /data-zhihu-centered-scrolled/, 'header style does not switch when scrolling');
   assert.match(firstStyle.textContent, /Pc-Business-Card-PcTopFeedBanner/, 'style hides the homepage promotion banner');
   assert.match(firstStyle.textContent, /WriteArea/, 'style hides the homepage composer card');
-  assert.match(firstStyle.textContent, /\.QuestionHeader \{[\s\S]*width: 694px[\s\S]*margin-left: auto/, 'question header uses the same centered width as answers');
+  assert.match(firstStyle.textContent, /\.QuestionHeader \{[\s\S]*width: 694px[\s\S]*min-width: 0[\s\S]*margin-left: auto/, 'question header overrides Zhihu minimum width and matches answers');
+  assert.match(firstStyle.textContent, /\.QuestionHeader-content \{[\s\S]*padding-left: 0/, 'question content removes space reserved for the hidden side column');
   assert.doesNotMatch(firstStyle.textContent, /\.QuestionHeader-detail \{/, 'question description keeps Zhihu native styling');
   assert.doesNotMatch(firstStyle.textContent, /border-radius: 10px/, 'question header does not add a custom card appearance');
   assert.match(firstStyle.textContent, /\.PageHeader \{[\s\S]*display: none/, 'style hides only the duplicate sticky question header');

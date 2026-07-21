@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         知乎 · 简净居中
 // @namespace    https://github.com/MuonChaser/zhihu-centered-home
-// @version      1.3.2
+// @version      1.3.3
 // @description  精简知乎首页与问题页：正文居中、隐藏侧栏和顶部杂项，仅保留 Logo 与居中搜索框。
 // @author       MuonChaser
 // @match        https://www.zhihu.com/*
@@ -144,6 +144,7 @@
       html[${PAGE_ATTRIBUTE}] .QuestionHeader {
         box-sizing: border-box !important;
         width: 694px !important;
+        min-width: 0 !important;
         max-width: calc(100vw - 32px) !important;
         margin-left: auto !important;
         margin-right: auto !important;
@@ -160,6 +161,8 @@
 
       html[${PAGE_ATTRIBUTE}] .QuestionHeader-content {
         display: block !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
       }
 
       html[${PAGE_ATTRIBUTE}] .QuestionHeader-footer {
