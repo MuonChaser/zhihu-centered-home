@@ -89,7 +89,6 @@ function findById(root, id) {
 }
 
 async function main() {
-  const windowListeners = new Map();
   const documentElement = new FakeElement('HTML');
   const document = {
     documentElement,
@@ -117,11 +116,7 @@ async function main() {
     history,
     location,
     queueMicrotask,
-    scrollY: 0,
-    addEventListener(type, listener) {
-      if (!windowListeners.has(type)) windowListeners.set(type, []);
-      windowListeners.get(type).push(listener);
-    },
+    addEventListener: () => {},
   };
 
   const scriptPath = require.resolve('../zhihu-centered-home.user.js');
@@ -142,16 +137,8 @@ async function main() {
   assert.match(firstStyle.textContent, /left: calc\(50% - 352px\)/, 'logo placement does not move the search bar off center');
   assert.match(firstStyle.textContent, /\.SearchBar \{[\s\S]*position: fixed[\s\S]*left: 50%/, 'search bar is centered against the viewport');
   assert.match(firstStyle.textContent, /input::placeholder[\s\S]*color: transparent/, 'suggested search placeholder is hidden');
-  assert.match(firstStyle.textContent, /\.AppHeader \{[\s\S]*background: transparent[\s\S]*box-shadow: none/, 'full-width white header strip is removed');
-  assert.match(firstStyle.textContent, /data-zhihu-centered-scrolled[\s\S]*backdrop-filter: blur/, 'scrolled header gains a blurred background');
-
-  assert.equal(documentElement.hasAttribute('data-zhihu-centered-scrolled'), false, 'header is transparent at the top');
-  context.scrollY = 64;
-  for (const listener of windowListeners.get('scroll') || []) listener();
-  assert.equal(documentElement.hasAttribute('data-zhihu-centered-scrolled'), true, 'header background appears after scrolling');
-  context.scrollY = 0;
-  for (const listener of windowListeners.get('scroll') || []) listener();
-  assert.equal(documentElement.hasAttribute('data-zhihu-centered-scrolled'), false, 'header becomes transparent again at the top');
+  assert.match(firstStyle.textContent, /\.AppHeader \{[\s\S]*background: rgba\(246, 247, 249, 0\.88\)[\s\S]*backdrop-filter: blur/, 'header always has a blurred background');
+  assert.doesNotMatch(firstStyle.textContent, /data-zhihu-centered-scrolled/, 'header style does not switch when scrolling');
   assert.match(firstStyle.textContent, /Pc-Business-Card-PcTopFeedBanner/, 'style hides the homepage promotion banner');
   assert.match(firstStyle.textContent, /WriteArea/, 'style hides the homepage composer card');
   assert.match(firstStyle.textContent, /\.QuestionHeader,/, 'style hides the question header card');

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         知乎 · 简净居中
 // @namespace    https://github.com/MuonChaser/zhihu-centered-home
-// @version      1.2.4
+// @version      1.2.5
 // @description  精简知乎首页与问题页：正文居中、隐藏侧栏和顶部杂项，仅保留 Logo 与居中搜索框。
 // @author       MuonChaser
 // @match        https://www.zhihu.com/*
@@ -17,21 +17,14 @@
   'use strict';
 
   const PAGE_ATTRIBUTE = 'data-zhihu-centered-home';
-  const SCROLLED_ATTRIBUTE = 'data-zhihu-centered-scrolled';
   const STYLE_ID = 'zhihu-centered-home-style';
 
   const css = `
     @media (min-width: 1000px) {
       /* 全站顶栏只保留搜索框；用结构选择器规避知乎频繁变化的构建类名。 */
       html[${PAGE_ATTRIBUTE}] .AppHeader {
-        background: transparent !important;
-        border: 0 !important;
-        box-shadow: none !important;
-        transition: background-color 160ms ease, box-shadow 160ms ease !important;
-      }
-
-      html[${PAGE_ATTRIBUTE}][${SCROLLED_ATTRIBUTE}] .AppHeader {
         background: rgba(246, 247, 249, 0.88) !important;
+        border: 0 !important;
         -webkit-backdrop-filter: blur(14px) saturate(140%) !important;
         backdrop-filter: blur(14px) saturate(140%) !important;
         box-shadow: 0 1px 8px rgba(18, 18, 18, 0.10) !important;
@@ -178,13 +171,6 @@
     document.documentElement.toggleAttribute(PAGE_ATTRIBUTE, isSupportedPage());
   }
 
-  function updateScrollState() {
-    document.documentElement.toggleAttribute(
-      SCROLLED_ATTRIBUTE,
-      isSupportedPage() && scrollY > 12,
-    );
-  }
-
   function installStyle() {
     if (document.getElementById(STYLE_ID)) return;
     if (!document.head) return;
@@ -199,7 +185,6 @@
 
   function maintainLayout() {
     updateLayout();
-    updateScrollState();
     installStyle();
 
     if (document.head !== observedHead) {
@@ -212,7 +197,7 @@
   const rootObserver = new MutationObserver(maintainLayout);
   rootObserver.observe(document.documentElement, {
     attributes: true,
-    attributeFilter: [PAGE_ATTRIBUTE, SCROLLED_ATTRIBUTE],
+    attributeFilter: [PAGE_ATTRIBUTE],
     childList: true,
   });
 
@@ -228,5 +213,4 @@
     };
   }
   addEventListener('popstate', maintainLayout);
-  addEventListener('scroll', updateScrollState, { passive: true });
 })();
