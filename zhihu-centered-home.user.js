@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         知乎首页与回答页居中精简
+// @name         知乎 · 简净居中
 // @namespace    https://github.com/MuonChaser/zhihu-centered-home
-// @version      1.2.0
-// @description  精简知乎首页与问题页：正文居中、隐藏侧栏和顶部杂项，只保留居中搜索框。
+// @version      1.2.1
+// @description  精简知乎首页与问题页：正文居中、隐藏侧栏和顶部杂项，仅保留 Logo 与居中搜索框。
 // @author       MuonChaser
 // @match        https://www.zhihu.com/*
 // @match        https://zhihu.com/*
@@ -24,6 +24,7 @@
       /* 全站顶栏只保留搜索框；用结构选择器规避知乎频繁变化的构建类名。 */
       html[${PAGE_ATTRIBUTE}] .AppHeader > div {
         justify-content: center !important;
+        position: relative !important;
       }
 
       html[${PAGE_ATTRIBUTE}] .AppHeader > div > :not(:has(.SearchBar)),
@@ -51,6 +52,16 @@
 
       html[${PAGE_ATTRIBUTE}] .AppHeader .SearchBar-tool {
         width: 100% !important;
+      }
+
+      /* 使用知乎原有 SVG Logo 点缀顶栏，不引入额外图片；搜索框仍严格位于页面中线。 */
+      html[${PAGE_ATTRIBUTE}] .AppHeader > div > a[aria-label="知乎"] {
+        display: block !important;
+        position: absolute !important;
+        left: calc(50% - 352px) !important;
+        top: 50% !important;
+        transform: translateY(-50%) !important;
+        margin: 0 !important;
       }
 
       html[${PAGE_ATTRIBUTE}] .Topstory-container {

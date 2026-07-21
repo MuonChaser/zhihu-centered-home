@@ -1,11 +1,11 @@
-# 知乎首页与回答页居中精简
+# 知乎 · 简净居中
 
-一个 Tampermonkey / Violentmonkey 用户脚本：把知乎网页版首页、普通问题页和回答详情页的正文置于页面中央，隐藏右侧栏与页面上部的推广/操作框，并把顶栏精简为一个居中的搜索框。搜索页、文章页和个人主页不受影响。
+一个 Tampermonkey / Violentmonkey 用户脚本：把知乎网页版首页、普通问题页和回答详情页的正文置于页面中央，隐藏右侧栏与页面上部的推广/操作框，并把顶栏精简为知乎 Logo 与居中的搜索框。搜索页、文章页和个人主页不受影响。
 
 ## 安装
 
 1. 在 Firefox 中安装 Tampermonkey 或 Violentmonkey。
-2. 点击 **[自动安装 / 更新“知乎首页与回答页居中精简”](https://raw.githubusercontent.com/MuonChaser/zhihu-centered-home/main/zhihu-centered-home.user.js)**。
+2. 点击 **[自动安装 / 更新“知乎 · 简净居中”](https://raw.githubusercontent.com/MuonChaser/zhihu-centered-home/main/zhihu-centered-home.user.js)**。
 3. 在脚本管理器的安装页确认安装，然后刷新知乎首页、普通问题页或回答详情页。
 
 已经安装旧版本时，再次打开安装链接即可更新到最新版。
@@ -13,7 +13,7 @@
 ## 效果
 
 - 首页信息流、普通问题页和回答详情页正文保持知乎原生主栏的 694px 宽度并水平居中。
-- 顶栏隐藏 Logo、频道导航、直答、创作、消息、私信和头像，只保留 560px 的居中搜索框。
+- 顶栏隐藏频道导航、直答、创作、消息、私信和头像，只保留知乎 Logo 与严格居中的 560px 搜索框。
 - 隐藏首页推广横幅与发布卡片，以及问题页标题/关注操作框和右侧栏。
 - 窄屏（小于 1000px）不改变知乎原有的响应式布局。
 

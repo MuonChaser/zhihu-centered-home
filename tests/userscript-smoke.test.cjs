@@ -133,6 +133,8 @@ async function main() {
   assert.match(firstStyle.textContent, /Question-sideColumn/, 'style hides the answer-page sidebar');
   assert.match(firstStyle.textContent, /QuestionHeader-content/, 'style centers the answer-page header');
   assert.match(firstStyle.textContent, /AppHeader[\s\S]*SearchBar/, 'style reduces the app header to the search bar');
+  assert.match(firstStyle.textContent, /a\[aria-label="知乎"\]/, 'style keeps the Zhihu logo beside the centered search bar');
+  assert.match(firstStyle.textContent, /left: calc\(50% - 352px\)/, 'logo placement does not move the search bar off center');
   assert.match(firstStyle.textContent, /Pc-Business-Card-PcTopFeedBanner/, 'style hides the homepage promotion banner');
   assert.match(firstStyle.textContent, /WriteArea/, 'style hides the homepage composer card');
   assert.match(firstStyle.textContent, /\.QuestionHeader,/, 'style hides the question header card');
