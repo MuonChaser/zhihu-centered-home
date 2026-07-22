@@ -36,6 +36,33 @@ class FakeMutationObserver {
   }
 }
 
+class FakeStyleDeclaration {
+  constructor() {
+    this.values = new Map();
+    this.priorities = new Map();
+  }
+
+  setProperty(name, value, priority = '') {
+    this.values.set(name, String(value));
+    this.priorities.set(name, String(priority));
+  }
+
+  getPropertyValue(name) {
+    return this.values.get(name) || '';
+  }
+
+  getPropertyPriority(name) {
+    return this.priorities.get(name) || '';
+  }
+
+  removeProperty(name) {
+    const previous = this.getPropertyValue(name);
+    this.values.delete(name);
+    this.priorities.delete(name);
+    return previous;
+  }
+}
+
 class FakeElement {
   constructor(tagName) {
     this.tagName = tagName;
@@ -44,6 +71,7 @@ class FakeElement {
     this.attributes = new Set();
     this.id = '';
     this.textContent = '';
+    this.style = new FakeStyleDeclaration();
   }
 
   appendChild(child) {
@@ -90,6 +118,8 @@ function findById(root, id) {
 
 async function main() {
   const documentListeners = new Map();
+  const frameCallbacks = [];
+  let fallbackCallback = null;
   let reloadCount = 0;
   const documentElement = new FakeElement('HTML');
   const document = {
@@ -125,15 +155,34 @@ async function main() {
     location,
     queueMicrotask,
     addEventListener: () => {},
+    requestAnimationFrame(callback) {
+      frameCallbacks.push(callback);
+      return frameCallbacks.length;
+    },
+    setTimeout(callback) {
+      fallbackCallback = callback;
+      return 1;
+    },
+    clearTimeout() {
+      fallbackCallback = null;
+    },
   };
 
   const scriptPath = require.resolve('../zhihu-centered-home.user.js');
   vm.runInNewContext(fs.readFileSync(scriptPath, 'utf8'), context, { filename: scriptPath });
 
+  assert.equal(documentElement.style.getPropertyValue('visibility'), 'hidden', 'supported pages are cloaked before the first frame');
+  assert.equal(documentElement.style.getPropertyPriority('visibility'), 'important', 'the first-frame cloak overrides site styles');
   assert.equal(documentElement.hasAttribute('data-zhihu-centered-home'), true, 'homepage is enabled at document start');
   const earlyStyle = document.getElementById('zhihu-centered-home-style');
   assert.ok(earlyStyle, 'style is installed before the head element exists');
   assert.equal(earlyStyle.parentElement, documentElement, 'early style is attached directly to the document root');
+
+  frameCallbacks.shift()();
+  assert.equal(documentElement.style.getPropertyValue('visibility'), 'hidden', 'page stays cloaked through the first animation frame');
+  frameCallbacks.shift()();
+  assert.equal(documentElement.style.getPropertyValue('visibility'), '', 'page is revealed after two stable animation frames');
+  assert.equal(fallbackCallback, null, 'the reveal fallback is cleared after a successful reveal');
 
   document.head = new FakeElement('HEAD');
   documentElement.appendChild(document.head);

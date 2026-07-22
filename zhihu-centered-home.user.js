@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         知乎 · 简净居中
 // @namespace    https://github.com/MuonChaser/zhihu-centered-home
-// @version      1.4.1
+// @version      1.4.2
 // @description  精简知乎首页、问题页与文章页：正文居中、隐藏侧栏和顶部杂项，仅保留 Logo 与居中搜索框。
 // @author       MuonChaser
 // @match        https://www.zhihu.com/*
@@ -20,6 +20,28 @@
 
   const PAGE_ATTRIBUTE = 'data-zhihu-centered-home';
   const STYLE_ID = 'zhihu-centered-home-style';
+  const root = document.documentElement;
+  const shouldCloak = Boolean(root && isSupportedPage());
+  const previousVisibility = root?.style.getPropertyValue('visibility') || '';
+  const previousVisibilityPriority = root?.style.getPropertyPriority('visibility') || '';
+  let revealed = false;
+
+  function revealPage() {
+    if (!shouldCloak || revealed) return;
+    revealed = true;
+
+    if (previousVisibility) {
+      root.style.setProperty('visibility', previousVisibility, previousVisibilityPriority);
+    } else {
+      root.style.removeProperty('visibility');
+    }
+  }
+
+  let revealFallback = null;
+  if (shouldCloak) {
+    root.style.setProperty('visibility', 'hidden', 'important');
+    revealFallback = setTimeout(revealPage, 1500);
+  }
 
   const css = `
     @media (min-width: 1000px) {
@@ -253,6 +275,17 @@
   });
 
   maintainLayout();
+  if (shouldCloak) {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (revealFallback !== null) {
+          clearTimeout(revealFallback);
+          revealFallback = null;
+        }
+        revealPage();
+      });
+    });
+  }
   document.addEventListener('DOMContentLoaded', maintainLayout, { once: true });
   document.addEventListener(
     'click',
