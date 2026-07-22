@@ -1,11 +1,12 @@
 // ==UserScript==
 // @name         知乎 · 简净居中
 // @namespace    https://github.com/MuonChaser/zhihu-centered-home
-// @version      1.3.3
-// @description  精简知乎首页与问题页：正文居中、隐藏侧栏和顶部杂项，仅保留 Logo 与居中搜索框。
+// @version      1.4.0
+// @description  精简知乎首页、问题页与文章页：正文居中、隐藏侧栏和顶部杂项，仅保留 Logo 与居中搜索框。
 // @author       MuonChaser
 // @match        https://www.zhihu.com/*
 // @match        https://zhihu.com/*
+// @match        https://zhuanlan.zhihu.com/p/*
 // @downloadURL  https://github.com/MuonChaser/zhihu-centered-home/raw/refs/heads/main/zhihu-centered-home.user.js
 // @updateURL    https://github.com/MuonChaser/zhihu-centered-home/raw/refs/heads/main/zhihu-centered-home.user.js
 // @run-at       document-start
@@ -53,6 +54,10 @@
         justify-content: center !important;
       }
 
+      html[${PAGE_ATTRIBUTE}] .AppHeader > div > :has(.SearchBar) {
+        pointer-events: none !important;
+      }
+
       html[${PAGE_ATTRIBUTE}] .AppHeader .SearchBar {
         position: fixed !important;
         top: 12px !important;
@@ -61,6 +66,7 @@
         width: 560px !important;
         max-width: calc(100vw - 32px) !important;
         transform: translateX(-50%) !important;
+        pointer-events: auto !important;
       }
 
       html[${PAGE_ATTRIBUTE}] .AppHeader .SearchBar-tool {
@@ -78,8 +84,11 @@
         position: fixed !important;
         left: calc(50% - 352px) !important;
         top: 31px !important;
+        z-index: 2 !important;
         transform: translateY(-50%) !important;
         margin: 0 !important;
+        cursor: pointer !important;
+        pointer-events: auto !important;
       }
 
       html[${PAGE_ATTRIBUTE}] .Topstory-container {
@@ -174,12 +183,37 @@
         width: 100% !important;
         max-width: none !important;
       }
+
+      /* 文章页：保留原生 654px 阅读正文和 20px 内边距，隐藏 296px 右栏并居中。 */
+      html[${PAGE_ATTRIBUTE}] .Post-content > div:has(.Post-Main) {
+        display: block !important;
+        box-sizing: border-box !important;
+        width: 694px !important;
+        max-width: calc(100vw - 32px) !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+      }
+
+      html[${PAGE_ATTRIBUTE}] .Post-content > div:has(.Post-Main) > :has(.Post-Main) {
+        width: 100% !important;
+        max-width: none !important;
+      }
+
+      html[${PAGE_ATTRIBUTE}] .Post-content > div:has(.Post-Main) > :not(:has(.Post-Main)) {
+        display: none !important;
+      }
     }
   `;
 
   function isSupportedPage() {
-    if (!location.hostname.endsWith('zhihu.com')) return false;
-    return location.pathname === '/' || /^\/question\/\d+(?:\/answer\/\d+)?\/?$/.test(location.pathname);
+    const isMainSite = location.hostname === 'www.zhihu.com' || location.hostname === 'zhihu.com';
+    return (
+      (isMainSite && location.pathname === '/') ||
+      (isMainSite && /^\/question\/\d+(?:\/answer\/\d+)?\/?$/.test(location.pathname)) ||
+      (location.hostname === 'zhuanlan.zhihu.com' && /^\/p\/\d+\/?$/.test(location.pathname))
+    );
   }
 
   function updateLayout() {
@@ -221,7 +255,9 @@
   document.addEventListener(
     'click',
     (event) => {
-      const logo = event.target.closest?.('.AppHeader > div > a[aria-label="知乎"]');
+      const logo = event.target.closest?.(
+        '.AppHeader a[aria-label="知乎"], .AppHeader .AppHeader-zhihuLogo',
+      );
       if (!logo || !isSupportedPage()) return;
       event.preventDefault();
       location.reload();

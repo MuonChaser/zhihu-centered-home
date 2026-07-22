@@ -143,6 +143,7 @@ async function main() {
   assert.match(firstStyle.textContent, /AppHeader[\s\S]*SearchBar/, 'style reduces the app header to the search bar');
   assert.match(firstStyle.textContent, /a\[aria-label="知乎"\]/, 'style keeps the Zhihu logo beside the centered search bar');
   assert.match(firstStyle.textContent, /left: calc\(50% - 352px\)/, 'logo placement does not move the search bar off center');
+  assert.match(firstStyle.textContent, /a\[aria-label="知乎"\][\s\S]*z-index: 2[\s\S]*pointer-events: auto/, 'logo stays above transparent header layers and remains clickable');
   assert.match(firstStyle.textContent, /\.SearchBar \{[\s\S]*position: fixed[\s\S]*left: 50%/, 'search bar is centered against the viewport');
   assert.match(firstStyle.textContent, /input::placeholder[\s\S]*color: transparent/, 'suggested search placeholder is hidden');
   assert.match(firstStyle.textContent, /\.AppHeader \{[\s\S]*background: rgba\(246, 247, 249, 0\.88\)[\s\S]*backdrop-filter: blur/, 'header always has a blurred background');
@@ -154,6 +155,8 @@ async function main() {
   assert.doesNotMatch(firstStyle.textContent, /\.QuestionHeader-detail \{/, 'question description keeps Zhihu native styling');
   assert.doesNotMatch(firstStyle.textContent, /border-radius: 10px/, 'question header does not add a custom card appearance');
   assert.match(firstStyle.textContent, /\.PageHeader \{[\s\S]*display: none/, 'style hides only the duplicate sticky question header');
+  assert.match(firstStyle.textContent, /\.Post-content > div:has\(\.Post-Main\)[\s\S]*width: 694px/, 'article content container is centered at the native main-column width');
+  assert.match(firstStyle.textContent, /\.Post-content > div:has\(\.Post-Main\) > :not\(:has\(\.Post-Main\)\)/, 'article sidebar is hidden structurally');
 
   let prevented = false;
   for (const listener of documentListeners.get('click') || []) {
@@ -189,11 +192,18 @@ async function main() {
   await new Promise((resolve) => setImmediate(resolve));
   assert.equal(documentElement.hasAttribute('data-zhihu-centered-home'), true, 'answer pages support a trailing slash');
 
+  location.hostname = 'zhuanlan.zhihu.com';
+  history.pushState({}, '', '/p/987654321');
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(documentElement.hasAttribute('data-zhihu-centered-home'), true, 'layout is enabled on a Zhihu article page');
+
+  location.hostname = 'www.zhihu.com';
+
   history.pushState({}, '', '/');
   await new Promise((resolve) => setImmediate(resolve));
   assert.equal(documentElement.hasAttribute('data-zhihu-centered-home'), true, 'layout is re-enabled after returning home');
 
-  console.log('PASS: userscript restores its style, supports home, question, and answer pages, and handles SPA navigation.');
+  console.log('PASS: userscript restores its style, supports home, question, answer, and article pages, and handles SPA navigation.');
 }
 
 main().catch((error) => {
