@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         知乎 · 简净居中
 // @namespace    https://github.com/MuonChaser/zhihu-centered-home
-// @version      1.4.0
+// @version      1.4.1
 // @description  精简知乎首页、问题页与文章页：正文居中、隐藏侧栏和顶部杂项，仅保留 Logo 与居中搜索框。
 // @author       MuonChaser
 // @match        https://www.zhihu.com/*
@@ -10,6 +10,7 @@
 // @downloadURL  https://github.com/MuonChaser/zhihu-centered-home/raw/refs/heads/main/zhihu-centered-home.user.js
 // @updateURL    https://github.com/MuonChaser/zhihu-centered-home/raw/refs/heads/main/zhihu-centered-home.user.js
 // @run-at       document-start
+// @inject-into  content
 // @grant        none
 // @license      MIT
 // ==/UserScript==
@@ -222,11 +223,12 @@
 
   function installStyle() {
     if (document.getElementById(STYLE_ID)) return;
-    if (!document.head) return;
+    const target = document.head || document.documentElement;
+    if (!target) return;
     const style = document.createElement('style');
     style.id = STYLE_ID;
     style.textContent = css;
-    document.head.appendChild(style);
+    target.appendChild(style);
   }
 
   let observedHead = null;

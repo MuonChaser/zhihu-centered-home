@@ -131,12 +131,14 @@ async function main() {
   vm.runInNewContext(fs.readFileSync(scriptPath, 'utf8'), context, { filename: scriptPath });
 
   assert.equal(documentElement.hasAttribute('data-zhihu-centered-home'), true, 'homepage is enabled at document start');
-  assert.equal(document.getElementById('zhihu-centered-home-style'), null, 'style waits for the head element');
+  const earlyStyle = document.getElementById('zhihu-centered-home-style');
+  assert.ok(earlyStyle, 'style is installed before the head element exists');
+  assert.equal(earlyStyle.parentElement, documentElement, 'early style is attached directly to the document root');
 
   document.head = new FakeElement('HEAD');
   documentElement.appendChild(document.head);
   const firstStyle = document.getElementById('zhihu-centered-home-style');
-  assert.ok(firstStyle, 'style is installed when head appears');
+  assert.equal(firstStyle, earlyStyle, 'creating the head does not replace the already-active style');
   assert.match(firstStyle.textContent, /Topstory-mainColumn \+ div/, 'style contains the structural sidebar selector');
   assert.match(firstStyle.textContent, /Question-sideColumn/, 'style hides the answer-page sidebar');
   assert.match(firstStyle.textContent, /QuestionHeader-content/, 'style centers the answer-page header');
@@ -170,7 +172,7 @@ async function main() {
   assert.equal(prevented, true, 'clicking the Zhihu logo prevents SPA navigation');
   assert.equal(reloadCount, 1, 'clicking the Zhihu logo reloads the current page');
 
-  document.head.removeChild(firstStyle);
+  documentElement.removeChild(firstStyle);
   assert.ok(document.getElementById('zhihu-centered-home-style'), 'style is restored after Zhihu removes it');
 
   documentElement.removeAttribute('data-zhihu-centered-home');
