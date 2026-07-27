@@ -147,6 +147,7 @@ async function main() {
     hostname: 'www.zhihu.com',
     pathname: '/',
     search: '?theme=dark',
+    hash: '',
     reload() {
       reloadCount += 1;
     },
@@ -157,6 +158,7 @@ async function main() {
     location.hostname = parsed.hostname;
     location.pathname = parsed.pathname;
     location.search = parsed.search;
+    location.hash = parsed.hash;
   }
   const history = {
     pushState(_state, _title, url) {
@@ -287,6 +289,52 @@ async function main() {
   assert.equal(documentElement.hasAttribute('data-zhihu-centered-home'), true, 'layout is re-enabled after returning home');
   documentElement.setAttribute('data-theme', 'light');
   assert.equal(documentElement.getAttribute('data-theme'), 'light', 'a URL without theme does not override Zhihu native theme changes');
+
+  let doubleClickPrevented = false;
+  for (const listener of documentListeners.get('dblclick') || []) {
+    listener({
+      target: {
+        closest(selector) {
+          return selector === '.AppHeader' ? {} : null;
+        },
+      },
+      preventDefault() {
+        doubleClickPrevented = true;
+      },
+    });
+  }
+  assert.equal(doubleClickPrevented, true, 'double-clicking empty header space prevents accidental text selection');
+  assert.equal(documentElement.getAttribute('data-theme'), 'dark', 'double-clicking empty header space enables dark mode');
+  assert.equal(location.search, '?theme=dark', 'header toggle writes dark mode to the current URL');
+
+  for (const listener of documentListeners.get('dblclick') || []) {
+    listener({
+      target: {
+        closest(selector) {
+          if (selector === '.AppHeader') return {};
+          if (selector.includes('input')) return {};
+          return null;
+        },
+      },
+      preventDefault() {
+        throw new Error('interactive header controls must not toggle the theme');
+      },
+    });
+  }
+  assert.equal(documentElement.getAttribute('data-theme'), 'dark', 'double-clicking the search box does not change theme');
+
+  for (const listener of documentListeners.get('dblclick') || []) {
+    listener({
+      target: {
+        closest(selector) {
+          return selector === '.AppHeader' ? {} : null;
+        },
+      },
+      preventDefault() {},
+    });
+  }
+  assert.equal(documentElement.getAttribute('data-theme'), 'light', 'a second header double-click returns to light mode');
+  assert.equal(location.search, '?theme=light', 'header toggle writes light mode to the current URL');
 
   console.log('PASS: userscript restores its style, supports home, question, answer, and article pages, and handles SPA navigation.');
 }

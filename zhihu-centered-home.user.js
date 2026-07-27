@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         知乎 · 简净居中
 // @namespace    https://github.com/MuonChaser/zhihu-centered-home
-// @version      1.5.0
+// @version      1.5.1
 // @description  精简知乎首页、问题页与文章页：正文居中、隐藏侧栏和顶部杂项，仅保留 Logo 与居中搜索框。
 // @author       MuonChaser
 // @match        https://www.zhihu.com/*
@@ -275,6 +275,18 @@
     }
   }
 
+  function toggleTheme() {
+    if (!root || !isSupportedPage()) return;
+    const nextTheme = root.getAttribute(THEME_ATTRIBUTE) === 'dark' ? 'light' : 'dark';
+    const url = new URL(
+      `${location.pathname}${location.search}${location.hash}`,
+      `https://${location.hostname}`,
+    );
+    url.searchParams.set('theme', nextTheme);
+    history.replaceState(history.state, '', `${url.pathname}${url.search}${url.hash}`);
+    updateTheme();
+  }
+
   function updateLayout() {
     document.documentElement.toggleAttribute(PAGE_ATTRIBUTE, isSupportedPage());
     updateTheme();
@@ -333,6 +345,19 @@
       if (!logo || !isSupportedPage()) return;
       event.preventDefault();
       location.reload();
+    },
+    true,
+  );
+  document.addEventListener(
+    'dblclick',
+    (event) => {
+      const header = event.target.closest?.('.AppHeader');
+      const interactive = event.target.closest?.(
+        'a, button, input, textarea, select, [role="button"], [contenteditable="true"]',
+      );
+      if (!header || interactive || !isSupportedPage()) return;
+      event.preventDefault();
+      toggleTheme();
     },
     true,
   );
