@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         知乎 · 简净居中
 // @namespace    https://github.com/MuonChaser/zhihu-centered-home
-// @version      1.6.0
+// @version      1.7.0
 // @description  精简知乎首页、问题页与文章页：正文居中、隐藏侧栏和顶部杂项，仅保留 Logo 与居中搜索框。
 // @author       MuonChaser
 // @match        https://www.zhihu.com/*
@@ -12,6 +12,7 @@
 // @run-at       document-start
 // @inject-into  content
 // @grant        none
+// @noframes
 // @license      MIT
 // ==/UserScript==
 
@@ -20,31 +21,154 @@
 
   const PAGE_ATTRIBUTE = 'data-zhihu-centered-home';
   const THEME_ATTRIBUTE = 'data-theme';
+  const BOOT_ATTRIBUTE = 'data-zhihu-centered-booting';
   const STYLE_ID = 'zhihu-centered-home-style';
+  const THEME_CACHE_KEY = 'zhihu-centered-home-theme';
+  const REVEAL_TIMEOUT_MS = 4000;
   const root = document.documentElement;
+  if (!root) return;
+
   const shouldCloak = Boolean(root && isSupportedPage());
-  const previousVisibility = root?.style.getPropertyValue('visibility') || '';
-  const previousVisibilityPriority = root?.style.getPropertyPriority('visibility') || '';
-  let revealed = false;
+  let cloakState = null;
+  let revealFallback = null;
+  let bootGeneration = 0;
 
-  function revealPage() {
-    if (!shouldCloak || revealed) return;
-    revealed = true;
-
-    if (previousVisibility) {
-      root.style.setProperty('visibility', previousVisibility, previousVisibilityPriority);
-    } else {
-      root.style.removeProperty('visibility');
+  function readCachedTheme() {
+    try {
+      const theme = sessionStorage.getItem(THEME_CACHE_KEY);
+      return theme === 'dark' || theme === 'light' ? theme : null;
+    } catch {
+      return null;
     }
   }
 
-  let revealFallback = null;
-  if (shouldCloak) {
-    root.style.setProperty('visibility', 'hidden', 'important');
-    revealFallback = setTimeout(revealPage, 1500);
+  function cacheTheme(theme) {
+    if (theme !== 'dark' && theme !== 'light') return;
+    try {
+      sessionStorage.setItem(THEME_CACHE_KEY, theme);
+    } catch {
+      // Storage can be unavailable in strict privacy modes; theme switching still works.
+    }
   }
 
+  function getBootTheme() {
+    const requestedTheme = getRequestedTheme();
+    if (requestedTheme) return requestedTheme;
+    const documentTheme = root?.getAttribute(THEME_ATTRIBUTE);
+    if (documentTheme === 'dark' || documentTheme === 'light') return documentTheme;
+    const cachedTheme = readCachedTheme();
+    if (cachedTheme) return cachedTheme;
+    return typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: dark)').matches
+      ? 'dark'
+      : 'light';
+  }
+
+  function restoreInlineProperty(name, value, priority) {
+    if (value) root.style.setProperty(name, value, priority);
+    else root.style.removeProperty(name);
+  }
+
+  function revealPage() {
+    if (!cloakState) return;
+    const finishedState = cloakState;
+    cloakState = null;
+
+    if (revealFallback !== null) {
+      clearTimeout(revealFallback);
+      revealFallback = null;
+    }
+    bootObserver.disconnect();
+    restoreInlineProperty(
+      'visibility',
+      finishedState.previousVisibility,
+      finishedState.previousVisibilityPriority,
+    );
+    restoreInlineProperty(
+      'background-color',
+      finishedState.previousBackground,
+      finishedState.previousBackgroundPriority,
+    );
+
+    const finishedGeneration = finishedState.generation;
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (!cloakState && bootGeneration === finishedGeneration) {
+          root.removeAttribute(BOOT_ATTRIBUTE);
+        }
+      });
+    });
+  }
+
+  function beginCloak({ requireMutation = false } = {}) {
+    if (!root || !isSupportedPage()) return;
+
+    const generation = ++bootGeneration;
+    if (!cloakState) {
+      cloakState = {
+        previousVisibility: root.style.getPropertyValue('visibility'),
+        previousVisibilityPriority: root.style.getPropertyPriority('visibility'),
+        previousBackground: root.style.getPropertyValue('background-color'),
+        previousBackgroundPriority: root.style.getPropertyPriority('background-color'),
+        frameScheduled: false,
+      };
+    }
+
+    Object.assign(cloakState, {
+      generation,
+      routeKey: getRouteKey(),
+      requireMutation,
+      mutationSeen: !requireMutation,
+      stableFrames: 0,
+    });
+
+    const theme = getBootTheme();
+    if (getRequestedTheme() && root.getAttribute(THEME_ATTRIBUTE) !== theme) {
+      root.setAttribute(THEME_ATTRIBUTE, theme);
+    }
+    cacheTheme(theme);
+    root.setAttribute(BOOT_ATTRIBUTE, '');
+    root.style.setProperty('background-color', theme === 'dark' ? '#000' : '#f4f6f9', 'important');
+    root.style.setProperty('visibility', 'hidden', 'important');
+
+    if (revealFallback !== null) clearTimeout(revealFallback);
+    revealFallback = setTimeout(() => {
+      revealFallback = null;
+      revealPage();
+    }, REVEAL_TIMEOUT_MS);
+
+    bootObserver.disconnect();
+    bootObserver.observe(root, { childList: true, subtree: true });
+    scheduleRevealCheck();
+  }
+
+  const bootObserver = new MutationObserver(() => {
+    if (!cloakState) return;
+    cloakState.mutationSeen = true;
+    scheduleRevealCheck();
+  });
+
+  if (shouldCloak) beginCloak();
+
+  // USERSTYLE_CSS_START
   const css = `
+    html[${PAGE_ATTRIBUTE}],
+    html[${PAGE_ATTRIBUTE}] body {
+      background-color: #f4f6f9 !important;
+    }
+
+    html[${PAGE_ATTRIBUTE}][${THEME_ATTRIBUTE}="dark"],
+    html[${PAGE_ATTRIBUTE}][${THEME_ATTRIBUTE}="dark"] body {
+      color-scheme: dark !important;
+      background-color: #000 !important;
+    }
+
+    html[${BOOT_ATTRIBUTE}] *,
+    html[${BOOT_ATTRIBUTE}] *::before,
+    html[${BOOT_ATTRIBUTE}] *::after {
+      transition: none !important;
+      animation: none !important;
+    }
+
     @media (min-width: 1000px) {
       /* 全站顶栏只保留搜索框；用结构选择器规避知乎频繁变化的构建类名。 */
       html[${PAGE_ATTRIBUTE}] .AppHeader {
@@ -53,10 +177,6 @@
         -webkit-backdrop-filter: blur(14px) saturate(140%) !important;
         backdrop-filter: blur(14px) saturate(140%) !important;
         box-shadow: 0 1px 8px rgba(18, 18, 18, 0.10) !important;
-      }
-
-      html[${PAGE_ATTRIBUTE}][${THEME_ATTRIBUTE}="dark"] {
-        color-scheme: dark !important;
       }
 
       html[${PAGE_ATTRIBUTE}][${THEME_ATTRIBUTE}="dark"] .AppHeader {
@@ -263,14 +383,91 @@
       }
     }
   `;
+  // USERSTYLE_CSS_END
+
+  function getPageKind() {
+    const isMainSite = location.hostname === 'www.zhihu.com' || location.hostname === 'zhihu.com';
+    if (isMainSite && location.pathname === '/') return 'home';
+    if (isMainSite && /^\/question\/\d+(?:\/answer\/\d+)?\/?$/.test(location.pathname)) {
+      return 'question';
+    }
+    if (location.hostname === 'zhuanlan.zhihu.com' && /^\/p\/\d+\/?$/.test(location.pathname)) {
+      return 'article';
+    }
+    return null;
+  }
 
   function isSupportedPage() {
-    const isMainSite = location.hostname === 'www.zhihu.com' || location.hostname === 'zhihu.com';
-    return (
-      (isMainSite && location.pathname === '/') ||
-      (isMainSite && /^\/question\/\d+(?:\/answer\/\d+)?\/?$/.test(location.pathname)) ||
-      (location.hostname === 'zhuanlan.zhihu.com' && /^\/p\/\d+\/?$/.test(location.pathname))
-    );
+    return getPageKind() !== null;
+  }
+
+  function getRouteKey() {
+    const pageKind = getPageKind();
+    const pathname =
+      location.pathname.length > 1 ? location.pathname.replace(/\/$/, '') : location.pathname;
+    return pageKind ? `${location.hostname}${pathname}` : '';
+  }
+
+  function isHiddenIfPresent(selector) {
+    const element = document.querySelector(selector);
+    if (!element || typeof getComputedStyle !== 'function') return true;
+    return getComputedStyle(element).display === 'none';
+  }
+
+  function isLayoutReady() {
+    if (!root?.hasAttribute(PAGE_ATTRIBUTE)) return false;
+    const style = document.getElementById(STYLE_ID);
+    if (!style?.parentElement) return false;
+    if (!document.querySelector('.AppHeader') || !document.querySelector('.AppHeader .SearchBar')) {
+      return false;
+    }
+
+    const pageKind = getPageKind();
+    if (pageKind === 'home') {
+      return (
+        Boolean(document.querySelector('.Topstory-container')) &&
+        Boolean(document.querySelector('.Topstory-mainColumn')) &&
+        isHiddenIfPresent(
+          '.Topstory-sideBar, .Topstory-container > .Topstory-mainColumn + div',
+        )
+      );
+    }
+    if (pageKind === 'question') {
+      return (
+        Boolean(document.querySelector('.QuestionHeader > .QuestionHeader-content .QuestionHeader-title')) &&
+        Boolean(document.querySelector('.Question-mainColumn')) &&
+        isHiddenIfPresent('.Question-sideColumn') &&
+        isHiddenIfPresent('.QuestionHeader > .QuestionHeader-footer')
+      );
+    }
+    if (pageKind === 'article') {
+      return (
+        Boolean(document.querySelector('.Post-Main')) &&
+        isHiddenIfPresent(
+          '.Post-content > div:has(.Post-Main) > :not(:has(.Post-Main))',
+        )
+      );
+    }
+    return false;
+  }
+
+  function scheduleRevealCheck() {
+    if (!cloakState || cloakState.frameScheduled) return;
+    cloakState.frameScheduled = true;
+
+    requestAnimationFrame(() => {
+      if (!cloakState) return;
+      cloakState.frameScheduled = false;
+      const routeStillMatches = cloakState.routeKey === getRouteKey();
+      const ready =
+        routeStillMatches &&
+        cloakState.mutationSeen &&
+        isLayoutReady();
+      cloakState.stableFrames = ready ? cloakState.stableFrames + 1 : 0;
+
+      if (cloakState.stableFrames >= 2) revealPage();
+      else scheduleRevealCheck();
+    });
   }
 
   function getRequestedTheme() {
@@ -283,6 +480,15 @@
     const requestedTheme = getRequestedTheme();
     if (requestedTheme && root.getAttribute(THEME_ATTRIBUTE) !== requestedTheme) {
       root.setAttribute(THEME_ATTRIBUTE, requestedTheme);
+    }
+    const effectiveTheme = requestedTheme || root.getAttribute(THEME_ATTRIBUTE);
+    cacheTheme(effectiveTheme);
+    if (cloakState && (effectiveTheme === 'dark' || effectiveTheme === 'light')) {
+      root.style.setProperty(
+        'background-color',
+        effectiveTheme === 'dark' ? '#000' : '#f4f6f9',
+        'important',
+      );
     }
   }
 
@@ -327,6 +533,21 @@
     }
   }
 
+  let activeRouteKey = getRouteKey();
+
+  function handleRouteChange(requireMutation = true) {
+    const nextRouteKey = getRouteKey();
+    if (nextRouteKey === activeRouteKey) {
+      maintainLayout();
+      return;
+    }
+
+    activeRouteKey = nextRouteKey;
+    if (nextRouteKey) beginCloak({ requireMutation });
+    else revealPage();
+    maintainLayout();
+  }
+
   const rootObserver = new MutationObserver(maintainLayout);
   rootObserver.observe(document.documentElement, {
     attributes: true,
@@ -335,17 +556,6 @@
   });
 
   maintainLayout();
-  if (shouldCloak) {
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        if (revealFallback !== null) {
-          clearTimeout(revealFallback);
-          revealFallback = null;
-        }
-        revealPage();
-      });
-    });
-  }
   document.addEventListener('DOMContentLoaded', maintainLayout, { once: true });
   document.addEventListener(
     'click',
@@ -377,9 +587,10 @@
     const original = history[method];
     history[method] = function (...args) {
       const result = original.apply(this, args);
-      queueMicrotask(maintainLayout);
+      handleRouteChange(true);
       return result;
     };
   }
-  addEventListener('popstate', maintainLayout);
+  addEventListener('popstate', () => handleRouteChange(true));
+  addEventListener('pageshow', () => handleRouteChange(false));
 })();

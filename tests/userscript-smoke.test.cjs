@@ -7,7 +7,18 @@ const observers = new Set();
 function notify(target, type, attributeName) {
   for (const observer of [...observers]) {
     for (const registration of observer.registrations) {
-      if (registration.target !== target) continue;
+      let isObservedTarget = registration.target === target;
+      if (!isObservedTarget && registration.options.subtree) {
+        let ancestor = target.parentElement;
+        while (ancestor) {
+          if (ancestor === registration.target) {
+            isObservedTarget = true;
+            break;
+          }
+          ancestor = ancestor.parentElement;
+        }
+      }
+      if (!isObservedTarget) continue;
       if (type === 'childList' && registration.options.childList) observer.callback([{ type, target }]);
       if (
         type === 'attributes' &&
@@ -127,9 +138,108 @@ function findById(root, id) {
   return null;
 }
 
+function createBootHarness({
+  search,
+  previousVisibility = '',
+  previousVisibilityPriority = '',
+  previousBackground = '',
+  previousBackgroundPriority = '',
+  cachedTheme = '',
+} = {}) {
+  const frameCallbacks = [];
+  const timers = new Map();
+  const presentSelectors = new Set();
+  const storage = new Map();
+  if (cachedTheme) storage.set('zhihu-centered-home-theme', cachedTheme);
+  let nextTimerId = 1;
+  const documentElement = new FakeElement('HTML');
+  if (previousVisibility) {
+    documentElement.style.setProperty(
+      'visibility',
+      previousVisibility,
+      previousVisibilityPriority,
+    );
+  }
+  if (previousBackground) {
+    documentElement.style.setProperty(
+      'background-color',
+      previousBackground,
+      previousBackgroundPriority,
+    );
+  }
+
+  const document = {
+    documentElement,
+    head: null,
+    createElement: (tagName) => new FakeElement(tagName.toUpperCase()),
+    getElementById: (id) => findById(documentElement, id),
+    querySelector: (selector) => (presentSelectors.has(selector) ? new FakeElement('DIV') : null),
+    addEventListener() {},
+  };
+  const location = {
+    hostname: 'www.zhihu.com',
+    pathname: '/',
+    search: search || '',
+    hash: '',
+    reload() {},
+  };
+  function applyUrl(url) {
+    if (!url) return;
+    const parsed = new URL(url, 'https://www.zhihu.com/');
+    location.hostname = parsed.hostname;
+    location.pathname = parsed.pathname;
+    location.search = parsed.search;
+    location.hash = parsed.hash;
+  }
+  const history = {
+    state: null,
+    pushState(_state, _title, url) {
+      applyUrl(url);
+    },
+    replaceState(_state, _title, url) {
+      applyUrl(url);
+    },
+  };
+  const context = {
+    MutationObserver: FakeMutationObserver,
+    URL,
+    URLSearchParams,
+    document,
+    history,
+    location,
+    addEventListener() {},
+    requestAnimationFrame(callback) {
+      frameCallbacks.push(callback);
+      return frameCallbacks.length;
+    },
+    setTimeout(callback, delay) {
+      const id = nextTimerId++;
+      timers.set(id, { callback, delay });
+      return id;
+    },
+    clearTimeout(id) {
+      timers.delete(id);
+    },
+    sessionStorage: {
+      getItem(key) {
+        return storage.has(key) ? storage.get(key) : null;
+      },
+      setItem(key, value) {
+        storage.set(key, String(value));
+      },
+    },
+  };
+
+  const scriptPath = require.resolve('../zhihu-centered-home.user.js');
+  vm.runInNewContext(fs.readFileSync(scriptPath, 'utf8'), context, { filename: scriptPath });
+  return { documentElement, frameCallbacks, presentSelectors, storage, timers };
+}
+
 async function main() {
   const documentListeners = new Map();
   const frameCallbacks = [];
+  const presentSelectors = new Set();
+  const storage = new Map();
   let fallbackCallback = null;
   let reloadCount = 0;
   const documentElement = new FakeElement('HTML');
@@ -138,6 +248,7 @@ async function main() {
     head: null,
     createElement: (tagName) => new FakeElement(tagName.toUpperCase()),
     getElementById: (id) => findById(documentElement, id),
+    querySelector: (selector) => (presentSelectors.has(selector) ? new FakeElement('DIV') : null),
     addEventListener(type, listener) {
       if (!documentListeners.has(type)) documentListeners.set(type, []);
       documentListeners.get(type).push(listener);
@@ -176,6 +287,14 @@ async function main() {
     history,
     location,
     queueMicrotask,
+    sessionStorage: {
+      getItem(key) {
+        return storage.has(key) ? storage.get(key) : null;
+      },
+      setItem(key, value) {
+        storage.set(key, String(value));
+      },
+    },
     addEventListener: () => {},
     requestAnimationFrame(callback) {
       frameCallbacks.push(callback);
@@ -195,22 +314,45 @@ async function main() {
 
   assert.equal(documentElement.style.getPropertyValue('visibility'), 'hidden', 'supported pages are cloaked before the first frame');
   assert.equal(documentElement.style.getPropertyPriority('visibility'), 'important', 'the first-frame cloak overrides site styles');
+  assert.equal(documentElement.style.getPropertyValue('background-color'), '#000', 'dark refresh paints a dark canvas while content is cloaked');
+  assert.equal(documentElement.hasAttribute('data-zhihu-centered-booting'), true, 'boot marker suppresses first-paint transitions');
   assert.equal(documentElement.hasAttribute('data-zhihu-centered-home'), true, 'homepage is enabled at document start');
   assert.equal(documentElement.getAttribute('data-theme'), 'dark', 'theme=dark enables Zhihu native dark mode at document start');
+  assert.equal(storage.get('zhihu-centered-home-theme'), 'dark', 'effective theme is cached for the next refresh');
   const earlyStyle = document.getElementById('zhihu-centered-home-style');
   assert.ok(earlyStyle, 'style is installed before the head element exists');
   assert.equal(earlyStyle.parentElement, documentElement, 'early style is attached directly to the document root');
 
   frameCallbacks.shift()();
-  assert.equal(documentElement.style.getPropertyValue('visibility'), 'hidden', 'page stays cloaked through the first animation frame');
+  assert.equal(documentElement.style.getPropertyValue('visibility'), 'hidden', 'page stays cloaked while React has not mounted the main layout');
+
+  presentSelectors.add('.AppHeader');
+  presentSelectors.add('.AppHeader .SearchBar');
+  presentSelectors.add('.Topstory-container');
+  presentSelectors.add('.Topstory-mainColumn');
+  frameCallbacks.shift()();
+  assert.equal(documentElement.style.getPropertyValue('visibility'), 'hidden', 'the first ready frame is not enough to reveal the page');
+  presentSelectors.delete('.Topstory-mainColumn');
+  frameCallbacks.shift()();
+  assert.equal(documentElement.style.getPropertyValue('visibility'), 'hidden', 'a disappearing layout sentinel resets the stability check');
+  presentSelectors.add('.Topstory-mainColumn');
+  frameCallbacks.shift()();
+  assert.equal(documentElement.style.getPropertyValue('visibility'), 'hidden', 'layout must become stable for a fresh first frame');
   frameCallbacks.shift()();
   assert.equal(documentElement.style.getPropertyValue('visibility'), '', 'page is revealed after two stable animation frames');
+  assert.equal(documentElement.style.getPropertyValue('background-color'), '', 'temporary dark canvas is restored after reveal');
   assert.equal(fallbackCallback, null, 'the reveal fallback is cleared after a successful reveal');
+  frameCallbacks.shift()();
+  frameCallbacks.shift()();
+  assert.equal(documentElement.hasAttribute('data-zhihu-centered-booting'), false, 'transition suppression is removed two frames after reveal');
 
   document.head = new FakeElement('HEAD');
   documentElement.appendChild(document.head);
   const firstStyle = document.getElementById('zhihu-centered-home-style');
   assert.equal(firstStyle, earlyStyle, 'creating the head does not replace the already-active style');
+  assert.match(firstStyle.textContent, /html\[data-zhihu-centered-home\] body[\s\S]*background-color: #f4f6f9/, 'light layout has a permanent matching canvas color');
+  assert.match(firstStyle.textContent, /\[data-theme="dark"\] body[\s\S]*background-color: #000/, 'dark layout has a permanent black canvas color');
+  assert.match(firstStyle.textContent, /data-zhihu-centered-booting[\s\S]*transition: none[\s\S]*animation: none/, 'boot marker suppresses first-paint motion');
   assert.match(firstStyle.textContent, /Topstory-mainColumn \+ div/, 'style contains the structural sidebar selector');
   assert.match(firstStyle.textContent, /Question-sideColumn/, 'style hides the answer-page sidebar');
   assert.match(firstStyle.textContent, /QuestionHeader-content/, 'style centers the answer-page header');
@@ -265,6 +407,16 @@ async function main() {
   await new Promise((resolve) => setImmediate(resolve));
   assert.equal(documentElement.hasAttribute('data-zhihu-centered-home'), true, 'layout is enabled on a regular question page');
   assert.equal(documentElement.getAttribute('data-theme'), 'light', 'SPA navigation can switch to light mode');
+  assert.equal(documentElement.style.getPropertyValue('visibility'), 'hidden', 'SPA navigation to new supported content starts a fresh cloak');
+  presentSelectors.add('.QuestionHeader > .QuestionHeader-content .QuestionHeader-title');
+  presentSelectors.add('.Question-mainColumn');
+  documentElement.appendChild(new FakeElement('DIV'));
+  frameCallbacks.shift()();
+  assert.equal(documentElement.style.getPropertyValue('visibility'), 'hidden', 'SPA content remains cloaked for its first stable frame');
+  frameCallbacks.shift()();
+  assert.equal(documentElement.style.getPropertyValue('visibility'), '', 'SPA content is revealed after its second stable frame');
+  frameCallbacks.shift()();
+  frameCallbacks.shift()();
 
   history.pushState({}, '', '/search?q=test&theme=dark');
   await new Promise((resolve) => setImmediate(resolve));
@@ -338,6 +490,31 @@ async function main() {
   }
   assert.equal(documentElement.getAttribute('data-theme'), 'light', 'a second header double-click returns to light mode');
   assert.equal(location.search, '?theme=light', 'header toggle writes light mode to the current URL');
+
+  const timeoutHarness = createBootHarness({
+    search: '?theme=dark',
+    previousVisibility: 'collapse',
+    previousVisibilityPriority: 'important',
+    previousBackground: 'rgb(1, 2, 3)',
+  });
+  assert.equal(timeoutHarness.timers.size, 1, 'boot gate installs exactly one reveal fallback');
+  const [fallbackId, fallbackTimer] = [...timeoutHarness.timers.entries()][0];
+  assert.equal(fallbackTimer.delay, 4000, 'fallback allows React time to mount before giving up');
+  timeoutHarness.timers.delete(fallbackId);
+  fallbackTimer.callback();
+  assert.equal(timeoutHarness.documentElement.style.getPropertyValue('visibility'), 'collapse', 'timeout restores a pre-existing visibility value');
+  assert.equal(timeoutHarness.documentElement.style.getPropertyPriority('visibility'), 'important', 'timeout restores visibility priority');
+  assert.equal(timeoutHarness.documentElement.style.getPropertyValue('background-color'), 'rgb(1, 2, 3)', 'timeout restores the previous canvas background');
+  timeoutHarness.frameCallbacks.shift()();
+  assert.equal(timeoutHarness.documentElement.style.getPropertyValue('visibility'), 'collapse', 'a stale readiness frame cannot hide or reveal again after timeout');
+
+  const lightHarness = createBootHarness({ search: '?theme=light' });
+  assert.equal(lightHarness.documentElement.style.getPropertyValue('background-color'), '#f4f6f9', 'light refresh paints a matching light canvas');
+  assert.equal(lightHarness.documentElement.getAttribute('data-theme'), 'light', 'light theme is applied before the first frame');
+
+  const cachedThemeHarness = createBootHarness({ cachedTheme: 'dark' });
+  assert.equal(cachedThemeHarness.documentElement.style.getPropertyValue('background-color'), '#000', 'a refresh without a theme parameter reuses the cached dark canvas');
+  assert.equal(cachedThemeHarness.documentElement.getAttribute('data-theme'), null, 'cached canvas color does not override Zhihu theme selection');
 
   console.log('PASS: userscript restores its style, supports home, question, answer, and article pages, and handles SPA navigation.');
 }
