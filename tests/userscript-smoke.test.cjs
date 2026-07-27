@@ -229,8 +229,11 @@ async function main() {
   assert.match(firstStyle.textContent, /\.QuestionHeader \{[\s\S]*width: 694px[\s\S]*min-width: 0[\s\S]*margin-left: auto/, 'question header overrides Zhihu minimum width and matches answers');
   assert.match(firstStyle.textContent, /\.QuestionPage > div:has\(> \.Question-sideColumn\) \{[\s\S]*padding-left: 0[\s\S]*padding-right: 0/, 'answer container removes native padding that shifts the main column');
   assert.match(firstStyle.textContent, /\.QuestionPage > div:has\(> \.Question-sideColumn\) > :has\(\.Question-mainColumn\)/, 'answer column wrapper fills the centered container');
-  assert.match(firstStyle.textContent, /\.QuestionHeader-content,[\s\S]*\.QuestionHeader-footer-inner \{[\s\S]*padding-left: 0/, 'question content and actions remove the obsolete side-column gutter');
-  assert.match(firstStyle.textContent, /\.QuestionHeader-main,[\s\S]*\.QuestionHeader-footer-main \{[\s\S]*box-sizing: border-box/, 'question text and actions keep native padding inside the centered width');
+  assert.match(firstStyle.textContent, /\.QuestionHeader-content \{[\s\S]*padding-left: 0/, 'question content removes the obsolete side-column gutter');
+  assert.match(firstStyle.textContent, /\.QuestionHeader-main \{[\s\S]*box-sizing: border-box/, 'question text keeps native padding inside the centered width');
+  assert.match(firstStyle.textContent, /\.QuestionHeader > \.QuestionHeader-content \.QuestionHeader-main > \* \{[\s\S]*display: none/, 'question header hides every component by default');
+  assert.match(firstStyle.textContent, /> \.QuestionHeader-title,[\s\S]*> :has\(\.QuestionRichText\) \{[\s\S]*display: block/, 'question header whitelist restores only title and description');
+  assert.match(firstStyle.textContent, /\.QuestionHeader > \.QuestionHeader-footer \{[\s\S]*display: none/, 'question follow and answer action row is removed');
   assert.doesNotMatch(firstStyle.textContent, /\.QuestionHeader-detail \{/, 'question description keeps Zhihu native styling');
   assert.doesNotMatch(firstStyle.textContent, /border-radius: 10px/, 'question header does not add a custom card appearance');
   assert.match(firstStyle.textContent, /\.PageHeader \{[\s\S]*display: none/, 'style hides only the duplicate sticky question header');

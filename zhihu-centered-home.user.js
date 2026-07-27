@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         知乎 · 简净居中
 // @namespace    https://github.com/MuonChaser/zhihu-centered-home
-// @version      1.5.1
+// @version      1.6.0
 // @description  精简知乎首页、问题页与文章页：正文居中、隐藏侧栏和顶部杂项，仅保留 Logo 与居中搜索框。
 // @author       MuonChaser
 // @match        https://www.zhihu.com/*
@@ -200,8 +200,7 @@
         margin-right: auto !important;
       }
 
-      html[${PAGE_ATTRIBUTE}] .QuestionHeader-content,
-      html[${PAGE_ATTRIBUTE}] .QuestionHeader-footer-inner {
+      html[${PAGE_ATTRIBUTE}] .QuestionHeader-content {
         box-sizing: border-box !important;
         width: 100% !important;
         max-width: none !important;
@@ -213,21 +212,33 @@
         display: block !important;
       }
 
-      html[${PAGE_ATTRIBUTE}] .QuestionHeader-content,
-      html[${PAGE_ATTRIBUTE}] .QuestionHeader-footer-inner {
+      html[${PAGE_ATTRIBUTE}] .QuestionHeader-content {
         padding-left: 0 !important;
         padding-right: 0 !important;
       }
 
-      html[${PAGE_ATTRIBUTE}] .QuestionHeader-footer {
-        width: 100% !important;
-      }
-
-      html[${PAGE_ATTRIBUTE}] .QuestionHeader-main,
-      html[${PAGE_ATTRIBUTE}] .QuestionHeader-footer-main {
+      html[${PAGE_ATTRIBUTE}] .QuestionHeader-main {
         box-sizing: border-box !important;
         width: 100% !important;
         max-width: none !important;
+      }
+
+      /*
+       * 问题头严格使用组件白名单：只显示问题标题，以及内部包含
+       * QuestionRichText 的问题描述。话题、影视/书籍卡片和动态推荐全部隐藏。
+       */
+      html[${PAGE_ATTRIBUTE}] .QuestionHeader > .QuestionHeader-content .QuestionHeader-main > * {
+        display: none !important;
+      }
+
+      html[${PAGE_ATTRIBUTE}] .QuestionHeader > .QuestionHeader-content .QuestionHeader-main > .QuestionHeader-title,
+      html[${PAGE_ATTRIBUTE}] .QuestionHeader > .QuestionHeader-content .QuestionHeader-main > :has(.QuestionRichText) {
+        display: block !important;
+      }
+
+      /* “关注问题 / 写回答 / 邀请回答 / 评论 / 分享”等操作整排不在白名单内。 */
+      html[${PAGE_ATTRIBUTE}] .QuestionHeader > .QuestionHeader-footer {
+        display: none !important;
       }
 
       /* 文章页：保留原生 654px 阅读正文和 20px 内边距，隐藏 296px 右栏并居中。 */
