@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         知乎 · 简净居中
 // @namespace    https://github.com/MuonChaser/zhihu-centered-home
-// @version      1.4.2
+// @version      1.5.0
 // @description  精简知乎首页、问题页与文章页：正文居中、隐藏侧栏和顶部杂项，仅保留 Logo 与居中搜索框。
 // @author       MuonChaser
 // @match        https://www.zhihu.com/*
@@ -19,6 +19,7 @@
   'use strict';
 
   const PAGE_ATTRIBUTE = 'data-zhihu-centered-home';
+  const THEME_ATTRIBUTE = 'data-theme';
   const STYLE_ID = 'zhihu-centered-home-style';
   const root = document.documentElement;
   const shouldCloak = Boolean(root && isSupportedPage());
@@ -52,6 +53,15 @@
         -webkit-backdrop-filter: blur(14px) saturate(140%) !important;
         backdrop-filter: blur(14px) saturate(140%) !important;
         box-shadow: 0 1px 8px rgba(18, 18, 18, 0.10) !important;
+      }
+
+      html[${PAGE_ATTRIBUTE}][${THEME_ATTRIBUTE}="dark"] {
+        color-scheme: dark !important;
+      }
+
+      html[${PAGE_ATTRIBUTE}][${THEME_ATTRIBUTE}="dark"] .AppHeader {
+        background: rgba(25, 27, 31, 0.92) !important;
+        box-shadow: 0 1px 8px rgba(0, 0, 0, 0.45) !important;
       }
 
       html[${PAGE_ATTRIBUTE}] .AppHeader > div {
@@ -99,6 +109,11 @@
       html[${PAGE_ATTRIBUTE}] .AppHeader .SearchBar input::placeholder {
         color: transparent !important;
         opacity: 0 !important;
+      }
+
+      /* 空搜索框弹层的第一组是“搜索发现”；保留用户自己的搜索历史。 */
+      html[${PAGE_ATTRIBUTE}] .SearchBar-noValueMenu > .AutoComplete-group:first-child {
+        display: none !important;
       }
 
       /* 使用知乎原有 SVG Logo 点缀顶栏，不引入额外图片；搜索框仍严格位于页面中线。 */
@@ -154,10 +169,13 @@
         box-sizing: border-box !important;
         width: 694px !important;
         max-width: calc(100vw - 32px) !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
         margin-left: auto !important;
         margin-right: auto !important;
       }
 
+      html[${PAGE_ATTRIBUTE}] .QuestionPage > div:has(> .Question-sideColumn) > :has(.Question-mainColumn),
       html[${PAGE_ATTRIBUTE}] .Question-mainColumn {
         width: 100% !important;
         max-width: none !important;
@@ -193,6 +211,10 @@
 
       html[${PAGE_ATTRIBUTE}] .QuestionHeader-content {
         display: block !important;
+      }
+
+      html[${PAGE_ATTRIBUTE}] .QuestionHeader-content,
+      html[${PAGE_ATTRIBUTE}] .QuestionHeader-footer-inner {
         padding-left: 0 !important;
         padding-right: 0 !important;
       }
@@ -203,6 +225,7 @@
 
       html[${PAGE_ATTRIBUTE}] .QuestionHeader-main,
       html[${PAGE_ATTRIBUTE}] .QuestionHeader-footer-main {
+        box-sizing: border-box !important;
         width: 100% !important;
         max-width: none !important;
       }
@@ -239,8 +262,22 @@
     );
   }
 
+  function getRequestedTheme() {
+    const theme = new URLSearchParams(location.search).get('theme');
+    return theme === 'dark' || theme === 'light' ? theme : null;
+  }
+
+  function updateTheme() {
+    if (!root || !isSupportedPage()) return;
+    const requestedTheme = getRequestedTheme();
+    if (requestedTheme && root.getAttribute(THEME_ATTRIBUTE) !== requestedTheme) {
+      root.setAttribute(THEME_ATTRIBUTE, requestedTheme);
+    }
+  }
+
   function updateLayout() {
     document.documentElement.toggleAttribute(PAGE_ATTRIBUTE, isSupportedPage());
+    updateTheme();
   }
 
   function installStyle() {
@@ -270,7 +307,7 @@
   const rootObserver = new MutationObserver(maintainLayout);
   rootObserver.observe(document.documentElement, {
     attributes: true,
-    attributeFilter: [PAGE_ATTRIBUTE],
+    attributeFilter: [PAGE_ATTRIBUTE, THEME_ATTRIBUTE],
     childList: true,
   });
 
